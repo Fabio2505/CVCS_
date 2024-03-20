@@ -171,7 +171,7 @@ class CNN(nn.Module):
 
 #Definizione della funzione di loss e del criterio di ottimizzazione
 model = CNN() 
-#model.load_state_dict(torch.load("cnn.pth"))
+#model.load_state_dict(torch.load("cnn.pth")) #togliere il commento se si vuole fare update dei pesi già presenti e non ricominciare da zero
 model.train()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.005) #0.01 standard
