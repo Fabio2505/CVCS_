@@ -43,18 +43,20 @@ def custom_collate_fn(batch):
  
 def preprocess(image):
       
-        image = np.array(image)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        width, height = image.shape[:2]
-        
-        #crop
-        start_width = max(int((width / 2) - 224), 0)  # Usa max per evitare valori negativi
-        start_height = max(int((height / 2) - 112), 0)  # Usa max per evitare valori negativi
+    image = np.array(image)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
-        cropped_image = image[start_height:start_height+224, start_width:start_width+448]
-        canny_image = cv2.Canny(cropped_image, 10, 80)
-       
-        return canny_image
+    width, height = image.shape[:2]        
+        #crop
+    start_width = max(int((width / 2) - 224), 0)  # Usa max per evitare valori negativi
+    start_height = max(int((height / 2) - 112), 0)  # Usa max per evitare valori negativi
+    if image.shape==(1920,1080):
+        start_height = (1920 + 400) // 2
+        start_width = (1080 - 224) // 2
+    image = image[start_height:start_height+224, start_width:start_width+448]
+    image = cv2.Canny(image, 10, 50)
+    
+    return image
         
 
    
@@ -63,29 +65,24 @@ def preprocess(image):
 def custom_preprocess_and_filter(batch_images, batch_labels):
     preprocessed_batch = []
     filtered_labels = []
-    i=0
+    
     for image, label in zip(batch_images, batch_labels):
-        i+=1
-        image = preprocess(image)  # Assumi che 'preprocess' sia una tua funzione
         
-         
-        # Verifica se l'immagine processata soddisfa i tuoi criteri
-        if (image.size > 0 and image.shape == (224, 448)):
-            image=torch.tensor(image, dtype=torch.float32)
-            image = image.unsqueeze(0) #aggiungi channel_in
-            preprocessed_batch.append(image)
-            filtered_labels.append(label)
+        image = preprocess(image)  
             
-        #else:
+        
+        image=torch.tensor(image, dtype=torch.float32)
+        image = image.unsqueeze(0) #aggiungi channel_in
+        preprocessed_batch.append(image)
+        filtered_labels.append(label)
             
-            #print("Immagine scartata, etichetta corrispondente scartata.")
-            
-            
+       
 
     #pytorch
+        
         preprocessed_batch_tensor = torch.stack(preprocessed_batch)
         filtered_labels_tensor = torch.tensor(filtered_labels)
-
+   
     return preprocessed_batch_tensor, filtered_labels_tensor
 
         
@@ -123,21 +120,28 @@ print("Lunghezza 2 /n")
 dataset = ConcatDataset([dataset1, dataset2]) #unione dei due dataset in maniera non randomica.Quando li proponiamo alla rete randomizziamo l'indice senza ripetizioni
 print("%  per dataset2") 
 print( len(dataset2)/len(dataset))
-
-
+"""
+for i in range (20):
+    image,label=dataset1[450+25*i]
+    image=preprocess(image)
+    cv2.imshow('Immagine ',image )  # 'Immagine 250' è il nome della finestra, e 'image' è l'immagine da mostrare
+    cv2.waitKey(0)  # Attende fino a quando un tasto non viene premuto
+    cv2.destroyAllWindows()
+"""
 total_size = len(dataset)
-train_size = int(0.85 * total_size)
+train_size = int(0.7 * total_size)
 test_size = total_size - train_size
+torch.manual_seed(123)
 
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=custom_collate_fn)
 test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
 
 
 # Creazione dell'istanza del dataloader
 
-num_epochs = 2 # EPOCHE per train
+num_epochs = 3 # EPOCHE per train
 
 preprocessed_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
@@ -147,20 +151,22 @@ labels = batch[1]
 
 print(batch[0].size())
 
-class CNN(nn.Module):
+class CNN(nn.Module): 
     def __init__(self):
         super(CNN, self).__init__()
 
-        self.conv1 = nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
-        self.dropout = nn.Dropout(0.4)  #con 0.3 fa 100% training set e 70 % test set!!!
-        self.fc1 = nn.Linear(4 * 112 * 224, 16)
+        self.conv1 = nn.Conv2d(1, 3, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(3, 3, kernel_size=3, stride=1, padding=1)
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
+        self.dropout = nn.Dropout(0.3)  #con 0.3 fa 100% training set e 70 % test set!!!
+        self.fc1 = nn.Linear(3 * 112 * 224, 16)
         self.fc2 = nn.Linear(16, 2)  # 2 output classes
 
     def forward(self, x):
-        x = nn.functional.relu(self.conv1(x)) 
+        x = nn.functional.relu(self.conv1(x))
+        x = nn.functional.relu(self.conv2(x)) 
         x = nn.functional.max_pool2d(x, 2)
-        x = x.view(-1, 4 * 224 * 112)
+        x = x.view(-1, 3 * 224 * 112)
         x = nn.functional.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)  # nessuna funzione di attivazione dato che si usa la cross entropy
@@ -171,13 +177,13 @@ class CNN(nn.Module):
 
 #Definizione della funzione di loss e del criterio di ottimizzazione
 model = CNN() 
-#model.load_state_dict(torch.load("cnn.pth")) #togliere il commento se si vuole fare update dei pesi già presenti e non ricominciare da zero
+#model.load_state_dict(torch.load("cnn.pth"))
 model.train()
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005) #0.01 standard
+optimizer = optim.Adam(model.parameters(), lr=0.00002) #0.001 standard
 
  
-#TRAINING
+#TRAINING  miglior risultato a = 0.92  || lr 0.0001 || dropout 0.4 || train-test size 0.7 || 4 epoche
 
 
 
@@ -190,11 +196,11 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(inputs)
+        outputs = model(batch_images)
         
 
-        labels = labels.long()
-        loss = criterion(outputs, labels)
+        batch_labels = batch_labels.long()
+        loss = criterion(outputs, batch_labels)
 
         # Backward pass e ottimizzazione
         loss.backward()
@@ -202,9 +208,9 @@ for epoch in range(num_epochs):
 
         # Stampa le statistiche di allenamento
         running_loss += loss.item()
-        if i % 50 == 0: # Stampa ogni i batch
+        if i % 1== 0: # Stampa ogni i batch
             print('[Epoch %d, Batch %d] loss: %.2f' %
-                  (epoch + 1, i + 1, running_loss/50 ))
+                  (epoch + 1, i + 1, running_loss ))
             running_loss = 0.0
 
 print('Training finito')
@@ -233,7 +239,7 @@ accuracy = total_correct / total_images
 
 print(f'Accuracy on the test set: {accuracy:.2f}')
 
-
+#AUGMENTATION TRASLAZIONI VERTICALI!!!!
 
 
 
