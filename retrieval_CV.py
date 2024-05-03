@@ -10,7 +10,9 @@ from torchvision import models, transforms
 from torchvision.models import resnet50, ResNet50_Weights
 from torch.nn import functional as F
 
-
+#README: questo codice prende una rete pretrainata da torchvision (ResNet50), estrae le feature da un'immagine campionata randomicamente e la confronta con un subset..
+#..(che deve diventare l'insieme delle immagini della mappa) e ne calcola la distanza euclidea. Usa le notazioni del file constants di Giorgia. Gli ultimi 2 layer della resnet..
+#..sono rimossi perché ci interessa la feature map e non le predizioni :)
 
 # Funzione per prendere un'immagine casualmente da una cartella
 def random_img():
