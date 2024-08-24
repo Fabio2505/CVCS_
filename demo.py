@@ -24,6 +24,29 @@ def show_image(image):
       print("Non è stata trovata o caricata nessuna immagine.")
    return None
 
+
+# RETRIEVAL
+
+def controlla_giardino(mappa_giardino):
+   giardino_noto=0
+   sample=ret.new_image(image_files)  #nuova acquisizione
+   Resnet=ret.istanzia_modello()
+
+   transform = transforms.Compose([
+      transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
+      transforms.ToTensor(),  # Converti in tensore PyTorch
+      transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
+])
+   sample=transform(sample)
+   immagini=mappa.estrai_foto()
+
+   for idx, immagine in enumerate(immagini):
+      immagini[idx] = ret.extract_features(transform(immagine),Resnet)
+      if(ret.compare_images(sample,immagini[idx])>0.8):
+         giardino_noto=1
+
+   return giardino_noto   
+
 def insert_tag(image):
    
    image = cv2.Canny(image, 10, 50)
@@ -44,29 +67,9 @@ model = Net.CNN()
 model.load_state_dict(torch.load("cnn.pth"))
 
 
-# RETRIEVAL
-# se la mappa c'è già:
-'''
-sample=ret.new_image(image_files)
-Resnet=ret.istanzia_modello()
 
-transform = transforms.Compose([
-       transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
-       transforms.ToTensor(),  # Converti in tensore PyTorch
-       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
-])
-sample=transform(sample)
-immagini=mappa.estrai_foto()
+# se la mappa c'è già: puoi chiamare cotrolla giardino
 
-for idx, immagine in enumerate(immagini):
-   immagini[idx] = extract_features(transform(immagine))
-   if(ret.compare_images(sample,immagini[idx])>0.8):
-      esci dal for
-      #stesso giardino.
-
-
-
-'''
 #starting position
 x=0
 y=0
