@@ -1,13 +1,18 @@
 import numpy as np
 import torch
 import map as mp
+import funzione_mappa as fp
 import constants as c
+import retrieval_CV as ret
+import Rete as Net
 import os
 import cv2
 from torchvision import models, transforms
-import simulazione as sim
-import retrieval_CV as ret
-import Rete as Net
+from PIL import Image
+
+
+
+
 
 def show_image(image):
    if image is not None:
@@ -16,36 +21,10 @@ def show_image(image):
        cv2.waitKey(0)
        cv2.destroyAllWindows()
        
-       
-       
-
-       
    else:
       print("Non è stata trovata o caricata nessuna immagine.")
    return None
 
-
-# RETRIEVAL
-
-def controlla_giardino(mappa_giardino):
-   giardino_noto=0
-   sample=ret.new_image(image_files)  #nuova acquisizione
-   Resnet=ret.istanzia_modello()
-
-   transform = transforms.Compose([
-      transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
-      transforms.ToTensor(),  # Converti in tensore PyTorch
-      transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
-])
-   sample=transform(sample)
-   immagini=mappa.estrai_foto()
-
-   for idx, immagine in enumerate(immagini):
-      immagini[idx] = ret.extract_features(transform(immagine),Resnet)
-      if(ret.compare_images(sample,immagini[idx])>0.8):
-         giardino_noto=1
-
-   return giardino_noto   
 
 def insert_tag(image):
    
@@ -57,41 +36,70 @@ def insert_tag(image):
    stato_erba=stato_erba.item()
    return stato_erba
 
+
+def controlla_giardino(mappa):
+   giardino_noto=0
+   sample=ret.new_image(image_files)  
+   Resnet=ret.istanzia_modello()
+   
+   if isinstance(sample, np.ndarray):
+      sample = Image.fromarray(sample)
+   
+   transform = transforms.Compose([
+      transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
+      transforms.ToTensor(),  # Converti in tensore PyTorch
+      transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
+   ])
+   sample=transform(sample)
+   immagini=mappa.estrai_foto()
+
+   for idx, immagine in enumerate(immagini):
+      immagini[idx] = ret.extract_features(transform(immagine),Resnet)
+      if(ret.compare_images(sample,immagini[idx])>0.8):
+         giardino_noto=1
+
+   return giardino_noto   
+
+
+
 #CORE
 
+
 image_files = [file for file in os.listdir(c.FOLDER_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
-
-
 mappa=mp.Map(c.MAP_WIDTH,c.MAP_HEIGHT,c.CELL_SIZE)
 model = Net.CNN() 
 model.load_state_dict(torch.load("cnn.pth"))
+memory_path = 'C:\\CVCS\\memoria'
+image_directory = os.path.join(memory_path, 'immagini_mappa')
+json_file= os.path.join(memory_path, 'image_paths.json')
 
 
 
-# se la mappa c'è già: puoi chiamare cotrolla giardino
+# RETRIEVAL
+# se la mappa c'è già:
+# Tentativo di caricamento della mappa dal file
 
-#starting position
-x=0
-y=0
-#comincia da in alto a destra ma si modifica con semplicità
-
-for y in range (c.MAP_HEIGHT):
-#condizione ingrandimento
-   for x in range (c.MAP_WIDTH):
-   #condizione ingrandimento
-      image = ret.new_image(image_files)
-      image_to_store = cv2.resize(image, (224,224))
-      image=Net.preprocess(image) #ho zittito il Canny e la conversione a greyscale!!
-      stato_erba=insert_tag(image) #non tagliata :0
-      mappa.update_map(x,y,image_to_store,tag=stato_erba)
-       
-
-
-
-
-#missione: inserire tag nella casella della mappa
-mappa.display_grid() 
-mappa.display_map() #vuole l'RGB parlane con Giorgia 
+if (os.path.isfile(json_file)):  # Verifica che 'json_file' esista ed è un file
+      # Carica la mappa dal file
+      fp.load_image_paths_from_json(mappa, json_file)
+      print('percorso caricato')
+      
+      
+else:
+   print("Il file json non esiste.")
+   mappa=mp.Map(c.MAP_WIDTH,c.MAP_HEIGHT,c.CELL_SIZE)
+   fp.riempi_mappa(mappa) #scrive i percorsi nella mappa e salva le foto nella cartella
+   fp.trasforma_griglia(mappa)
+   fp.save_image_paths_to_json(mappa,json_file)
+   
+   
+mappa.display_map() #stampa i percorsi nella cartella concatenati
 
 
-#NAVIGAZIONE SIMPLE DA IMPLEMENTARE. #RETRIEVAL DA IMPLEMENTARE ED EVENTUALMENTE SFOLTIRE
+print(f"MAP_WIDTH: {c.MAP_WIDTH}, MAP_HEIGHT: {c.MAP_HEIGHT}")
+
+
+
+   #To Do: aggiungere depth, implementare navigazione.
+   
+
