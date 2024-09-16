@@ -39,7 +39,7 @@ def riempi_mappa(mappa):
                 file_path = os.path.join(image_directory, file_name)
                 cv2.imwrite(file_path, image_to_store)
                 # Aggiorna la mappa con l'immagine e il tag
-                mappa.update_map(x, y, image_to_store, tag=stato_erba)
+                mappa.update_map(x, y, image_to_store, stato_erba)
                 
 
 
@@ -70,13 +70,25 @@ def trasforma_griglia(mappa):
                     mappa.grid[row, col] = file_path
                     print(type(mappa.grid[row,col]))
 
+
+def save_tags_to_json(mappa, json_file):
+    tags={}
+    for i in range(mappa.grid.shape[1]):
+        for j in range(mappa.grid.shape[0]):
+            tag = mappa.tags[i, j]
+            tags[f"{i},{j}"] = tag
+    with open(json_file, 'w') as f:
+        json.dump(tags, f)
     
+    print("tags salvati in {json_file}")
+
+    
+
 
 
 def save_image_paths_to_json(mappa, json_file):
     # Dizionario per memorizzare i percorsi delle immagini con le loro posizioni
     image_paths = {}
-
     # Scorri la griglia e salva i percorsi
     for i in range(mappa.grid.shape[1]):
         for j in range(mappa.grid.shape[0]):
@@ -89,6 +101,23 @@ def save_image_paths_to_json(mappa, json_file):
         json.dump(image_paths, f)
 
     print(f"Percorsi delle immagini salvati in {json_file}")
+
+
+
+
+
+def load_tags_from_json(mappa, json_file):
+    with open(json_file, 'r') as f:
+        tags = json.load(f)  # Carica i dati dal file JSON
+    
+    # Assegna i tag caricati alla matrice mappa.tags
+    for key, value in tags.items():
+        i, j = map(int, key.split(','))  # Converte la chiave "i,j" in due interi
+        mappa.tags[i, j] = value  # Assegna il valore al tag corrispondente
+        print(f"Caricato tag {value} in posizione ({i}, {j})")  # Verifica visiva
+    print(mappa.tags)  # Stampa finale per vedere l'intera matrice
+
+
 
 def load_image_paths_from_json(mappa, json_file):
     # Leggi il file JSON
