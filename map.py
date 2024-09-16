@@ -111,14 +111,14 @@ class Map:
         cv2.destroyAllWindows()
 
 
-    def print_tag_grid(self):
+   def print_tag_grid(self):
         # Crea una matrice vuota per i tag binari
         tag_grid = np.zeros((self.height, self.width))
         
         # Copia i valori dei tag solo nelle celle occupate
         for i in range(self.height):
             for j in range(self.width):
-                if self.occupancy_grid[i][j] == 1 and self.tags[i][j] is not None:
+                if self.tags[i][j] is not None: #qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
                     tag_grid[i][j] = int(self.tags[i][j])
 
         # Definisci i colori per 0 e 1
@@ -139,4 +139,6 @@ class Map:
         
         # Mostra la mappa
         plt.show()
+    
+
     
