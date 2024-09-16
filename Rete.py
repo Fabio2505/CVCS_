@@ -54,7 +54,7 @@ def preprocess(image):
         start_height = (1920 + 400) // 2
         start_width = (1080 - 224) // 2
     image = image[start_height:start_height+224, start_width:start_width+448]
-    image = cv2.Canny(image, 10, 50)
+    #image = cv2.Canny(image, 10, 50)
     
     return image
         
@@ -69,7 +69,7 @@ def custom_preprocess_and_filter(batch_images, batch_labels):
     for image, label in zip(batch_images, batch_labels):
         
         image = preprocess(image)  
-            
+    
         
         image=torch.tensor(image, dtype=torch.float32)
         image = image.unsqueeze(0) #aggiungi channel_in
@@ -110,47 +110,6 @@ class MyDataset(Dataset):
         label = self.class_label
         return image, label
 
-
-dataset2 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbalunga',0) #erba NON tagliata classe 0
-dataset1 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbacorta',1) #erba tagliata classe 1
-print(len(dataset1))
-print("Lunghezza 1 /n")
-print(len(dataset2))
-print("Lunghezza 2 /n")
-dataset = ConcatDataset([dataset1, dataset2]) #unione dei due dataset in maniera non randomica.Quando li proponiamo alla rete randomizziamo l'indice senza ripetizioni
-print("%  per dataset2") 
-print( len(dataset2)/len(dataset))
-"""
-for i in range (20):
-    image,label=dataset1[450+25*i]
-    image=preprocess(image)
-    cv2.imshow('Immagine ',image )  # 'Immagine 250' è il nome della finestra, e 'image' è l'immagine da mostrare
-    cv2.waitKey(0)  # Attende fino a quando un tasto non viene premuto
-    cv2.destroyAllWindows()
-"""
-total_size = len(dataset)
-train_size = int(0.7 * total_size)
-test_size = total_size - train_size
-torch.manual_seed(123)
-
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=custom_collate_fn)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-
-
-# Creazione dell'istanza del dataloader
-
-num_epochs = 3 # EPOCHE per train
-
-preprocessed_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
-
-batch = next(iter(preprocessed_dataloader))
-inputs = batch[0]
-labels = batch[1]
-
-print(batch[0].size())
-
 class CNN(nn.Module): 
     def __init__(self):
         super(CNN, self).__init__()
@@ -171,75 +130,118 @@ class CNN(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)  # nessuna funzione di attivazione dato che si usa la cross entropy
         return x
+
+if __name__ == "__main__":
+    dataset2 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbalunga',0) #erba NON tagliata classe 0
+    dataset1 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbacorta',1) #erba tagliata classe 1
+    dataset = ConcatDataset([dataset1, dataset2]) #unione dei due dataset in maniera non randomica.Quando li proponiamo alla rete randomizziamo l'indice senza ripetizioni
+    '''
+    print(len(dataset1))
+    print("Lunghezza 1 /n")
+    print(len(dataset2))
+    print("Lunghezza 2 /n")
+     print("%  per dataset2") 
+    print( len(dataset2)/len(dataset))
+
+    
+    for i in range (20):
+       image,label=dataset1[450+25*i]
+       image=preprocess(image)
+       cv2.imshow('Immagine ',image )  # 'Immagine 250' è il nome della finestra, e 'image' è l'immagine da mostrare
+       cv2.waitKey(0)  # Attende fino a quando un tasto non viene premuto
+       cv2.destroyAllWindows()
+    '''
+    total_size = len(dataset)
+    train_size = int(0.8 * total_size)
+    test_size = total_size - train_size
+    torch.manual_seed(123)
+
+    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=custom_collate_fn)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
+
+
+# Creazione dell'istanza del dataloader
+
+    num_epochs = 0 # EPOCHE per train    OCCHIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+    preprocessed_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+
+    batch = next(iter(preprocessed_dataloader))
+    inputs = batch[0]
+    labels = batch[1]
+
+    print(batch[0].size())
+
+    
  
 
 
 
 #Definizione della funzione di loss e del criterio di ottimizzazione
-model = CNN() 
-#model.load_state_dict(torch.load("cnn.pth"))
-model.train()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.00002) #0.001 standard
+    model = CNN() 
+    model.load_state_dict(torch.load("cnn.pth"))
+    model.train()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.00002) #0.001 standard
 
  
 #TRAINING  miglior risultato a = 0.92  || lr 0.0001 || dropout 0.4 || train-test size 0.7 || 4 epoche
 
 
 
-for epoch in range(num_epochs):
-    running_loss = 0.0
-    for i, (batch_images, batch_labels) in enumerate(preprocessed_dataloader):
+    for epoch in range(num_epochs):
+       running_loss = 0.0
+       for i, (batch_images, batch_labels) in enumerate(preprocessed_dataloader):
         #print(inputs.size(), labels.size())  
     
        
-        optimizer.zero_grad()
+            optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(batch_images)
+            outputs = model(batch_images)
         
 
-        batch_labels = batch_labels.long()
-        loss = criterion(outputs, batch_labels)
+            batch_labels = batch_labels.long()
+            loss = criterion(outputs, batch_labels)
 
         # Backward pass e ottimizzazione
-        loss.backward()
-        optimizer.step()
+            loss.backward()
+            optimizer.step()
 
         # Stampa le statistiche di allenamento
-        running_loss += loss.item()
-        if i % 1== 0: # Stampa ogni i batch
-            print('[Epoch %d, Batch %d] loss: %.2f' %
-                  (epoch + 1, i + 1, running_loss ))
-            running_loss = 0.0
+            running_loss += loss.item()
+            if i % 1== 0: # Stampa ogni i batch
+                print('[Epoch %d, Batch %d] loss: %.2f' %
+                    (epoch + 1, i + 1, running_loss ))
+                running_loss = 0.0
 
-print('Training finito')
-torch.save(model.state_dict(), "cnn.pth")
+    print('Training finito')
+    torch.save(model.state_dict(), "cnn.pth")
 
 # TEST
 
-model.load_state_dict(torch.load("cnn.pth"))
-model.eval()
+    model.load_state_dict(torch.load("cnn.pth"))
+    model.eval()
 
 
-total_correct = 0
-total_images = 0
-with torch.no_grad():
+    total_correct = 0
+    total_images = 0
+    with torch.no_grad():
     
-    for images, labels in test_dataloader:
+        for images, labels in test_dataloader:
         
 
-        outputs = model(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total_images += labels.size(0)
-        total_correct += (predicted == labels).sum().item()
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total_images += labels.size(0)
+            total_correct += (predicted == labels).sum().item()
 
 
-accuracy = total_correct / total_images
+    accuracy = total_correct / total_images
 
-print(f'Accuracy on the test set: {accuracy:.2f}')
-
-#AUGMENTATION TRASLAZIONI VERTICALI!!!!
+    print(f'Accuracy on the test set: {accuracy:.2f}')
 
 
 
