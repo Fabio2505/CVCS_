@@ -72,6 +72,7 @@ model.load_state_dict(torch.load("cnn.pth"))
 memory_path = 'C:\\CVCS\\memoria'
 image_directory = os.path.join(memory_path, 'immagini_mappa')
 json_file= os.path.join(memory_path, 'image_paths.json')
+json_tags_file= os.path.join(memory_path, 'tags_file.json')
 
 
 
@@ -82,24 +83,29 @@ json_file= os.path.join(memory_path, 'image_paths.json')
 if (os.path.isfile(json_file)):  # Verifica che 'json_file' esista ed è un file
       # Carica la mappa dal file
       fp.load_image_paths_from_json(mappa, json_file)
+      fp.load_tags_from_json(mappa,json_tags_file)
       print('percorso caricato')
       
       
-else:
+else:  #questo branch non gestisce i tag, si implementa con un json come per le img ma è più facile
    print("Il file json non esiste.")
    mappa=mp.Map(c.MAP_WIDTH,c.MAP_HEIGHT,c.CELL_SIZE)
    fp.riempi_mappa(mappa) #scrive i percorsi nella mappa e salva le foto nella cartella
    fp.trasforma_griglia(mappa)
    fp.save_image_paths_to_json(mappa,json_file)
+   fp.save_tags_to_json(mappa,json_tags_file)
    
    
 mappa.display_map() #stampa i percorsi nella cartella concatenati
-
+mappa.print_tag_grid()
 
 print(f"MAP_WIDTH: {c.MAP_WIDTH}, MAP_HEIGHT: {c.MAP_HEIGHT}")
 
 
 
    #To Do: aggiungere depth, implementare navigazione.
+   
+
+
    
 
