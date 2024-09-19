@@ -23,67 +23,71 @@ def new_image(image_files):
     example_image = cv2.imread(full_image_path)
     return example_image
 
-if __name__ == "__main__":
+
 
 # Funzione per prendere un'immagine casualmente da una cartella
-    def random_img():
-        image_files = [file for file in os.listdir(c.FOLDER_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
-        if not image_files:
-          print("Nessun file immagine trovato nel percorso specificato.")
-          return None
+def random_img():
+    image_files = [file for file in os.listdir(c.FOLDER_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
+    if not image_files:
+        print("Nessun file immagine trovato nel percorso specificato.")
+        return None
 
-        random_image = random.choice(image_files)
-        full_image_path = os.path.join(c.FOLDER_PATH, random_image)
-        example_image = cv2.imread(full_image_path)
+    random_image = random.choice(image_files)
+    full_image_path = os.path.join(c.FOLDER_PATH, random_image)
+    example_image = cv2.imread(full_image_path)
 
-        if example_image is None:
-           print(f"Errore nel caricamento dell'immagine: {full_image_path}. Verifica il percorso e l'integrità del file.")
-           return None
+    if example_image is None:
+        print(f"Errore nel caricamento dell'immagine: {full_image_path}. Verifica il percorso e l'integrità del file.")
+        return None
 
-       # Converti da BGR (OpenCV) a RGB (PIL)
-        example_image = cv2.cvtColor(example_image, cv2.COLOR_BGR2RGB)
-    # Converti il numpy.ndarray in un oggetto PIL.Image
-        example_image = Image.fromarray(example_image)
-        return full_image_path
-    #return example_image
+    # Converti da BGR (OpenCV) a RGB (PIL)
+    example_image = cv2.cvtColor(example_image, cv2.COLOR_BGR2RGB)
+# Converti il numpy.ndarray in un oggetto PIL.Image
+    example_image = Image.fromarray(example_image)
+    return full_image_path
+#return example_image
 
 #subset del dataset per velocizzare l'esecuzione
-    def get_random_subset(folder_path, num_samples):
-        all_files = [file for file in os.listdir(folder_path) if file.endswith(('.jpg', '.jpeg', '.png'))]
-        if num_samples > len(all_files):
-           return all_files  # ritorna tutti i file se il num_samples è più grande del numero di file disponibili
-        else:
-           return random.sample(all_files, num_samples)
+def get_random_subset(folder_path, num_samples):
+    all_files = [file for file in os.listdir(folder_path) if file.endswith(('.jpg', '.jpeg', '.png'))]
+    if num_samples > len(all_files):
+        return all_files  # ritorna tutti i file se il num_samples è più grande del numero di file disponibili
+    else:
+        return random.sample(all_files, num_samples)
 
 
-    def compare_images(feature1, feature2):
-       distance = F.pairwise_distance(feature1, feature2)
-       return distance
+def compare_images(features1, features2):
+    
+    if features1.shape != features2.shape:
+        raise ValueError("Input tensors must have the same shape")
+    
+    # Compute cosine similarity along the appropriate dimension
+    similarity = F.cosine_similarity(features1, features2, dim=1)  # Adjust 'dim' as per your tensor shape
+    return similarity
 
 # Definizione delle trasformazioni per il modello
-    transform = transforms.Compose([
-       transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
-       transforms.ToTensor(),  # Converti in tensore PyTorch
-       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
+    transforms.ToTensor(),  # Converti in tensore PyTorch
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
 ])
 
 
-    def to_tensor(img_path):
-       img = Image.open(img_path).convert('RGB')
-       img_t = transform(img)
-       batch_t = torch.unsqueeze(img_t, 0)
-       return batch_t
+def to_tensor(img_path):
+    img = Image.open(img_path).convert('RGB')
+    img_t = transform(img)
+    batch_t = torch.unsqueeze(img_t, 0)
+    return batch_t
 
-    def extract_features(image_tensor):
-        with torch.no_grad():
-        # Ottenere le output fino all'ultimo strato convoluzionale
-           features = model(image_tensor)
-        # Applicare pooling globale per ridurre le dimensioni spaziali
-           features = features.view(features.size(0), -1)
-           return features
+def extract_features(image_tensor,model):
+    
+    with torch.no_grad():
+    # Ottenere le output fino all'ultimo strato convoluzionale
+        features = model(image_tensor)
+    # Applicare pooling globale per ridurre le dimensioni spaziali
+        features = features.view(features.size(0), -1)
+    return features
 
-    def compare_images(features1, features2):
-        return F.cosine_similarity(features1 - features2, p=2)
 
 
 #_____________________________________________________________________________________________________
