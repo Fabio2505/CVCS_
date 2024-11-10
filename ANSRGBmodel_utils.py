@@ -33,18 +33,19 @@ def compute_depth_values(img_depth, channel):
     }
 
 
-def depth_img_preprocessing(img_path, dim):
+def depth_img_preprocessing(img, dim):
     """
     pre-processing dell'immagine: prende la metà superiore dell'immagine e la ridimensiona per input modello ANSRGB
     """
-    img = Image.open(img_path)
+    if isinstance(img, np.ndarray):
+       img = Image.fromarray(img)
 
     width, height = img.size
     box = (0, 0, width, height // 2)  # Ritaglia la metà superiore
     img_crop = img.crop(box)
     # img_crop.show()
     img_out = img_crop.resize((dim[1], dim[2]))
-    img_out.show()
+    # img_out.show()
 
     #  trasformazioni per convertire l'immagine in un tensor e normalizzarla
     preprocess_to_tensor = transforms.Compose([
