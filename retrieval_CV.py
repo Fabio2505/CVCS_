@@ -32,7 +32,7 @@ def random_img():
         return None
 
     random_image = random.choice(image_files)
-    full_image_path = os.path.join(c.FOLDER_PATH, random_image)
+    full_image_path = os.path.join(c.IMAGES_PATH, random_image)
     example_image = cv2.imread(full_image_path)
 
     if example_image is None:
