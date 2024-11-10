@@ -54,7 +54,7 @@ def preprocess(image):
         start_height = (1920 + 400) // 2
         start_width = (1080 - 224) // 2
     image = image[start_height:start_height+224, start_width:start_width+448]
-    #image = cv2.Canny(image, 10, 50)
+    #image = cv2.Canny(image, 10, 50) chiamato nel file funzionI_mappa nella funzione riempi mappa
     
     return image
         
@@ -93,8 +93,8 @@ class MyDataset(Dataset):
         super().__init__()
         self.root_dir = root_dir
         self.file_names = os.listdir(root_dir)
-        self.class_label = class_label  # Assegna l'etichetta di classe al dataset
-        self.transform = transform  # Trasformazioni da applicare a ogni immagine
+        self.class_label = class_label  
+        self.transform = transform  
 
     def __len__(self):
         return len(self.file_names)
@@ -102,10 +102,6 @@ class MyDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.root_dir, self.file_names[idx])
         image = Image.open(img_path).convert('RGB')
-
-        # Applica le trasformazioni all'immagine, se specificate
-        if self.transform:
-            image = self.transform(image)
 
         label = self.class_label
         return image, label
@@ -117,9 +113,9 @@ class CNN(nn.Module):
         self.conv1 = nn.Conv2d(1, 3, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(3, 3, kernel_size=3, stride=1, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
-        self.dropout = nn.Dropout(0.3)  #con 0.3 fa 100% training set e 70 % test set!!!
+        self.dropout = nn.Dropout(0.3)  
         self.fc1 = nn.Linear(3 * 112 * 224, 16)
-        self.fc2 = nn.Linear(16, 2)  # 2 output classes
+        self.fc2 = nn.Linear(16, 2)  
 
     def forward(self, x):
         x = nn.functional.relu(self.conv1(x))
@@ -135,22 +131,7 @@ if __name__ == "__main__":
     dataset2 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbalunga',0) #erba NON tagliata classe 0
     dataset1 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbacorta',1) #erba tagliata classe 1
     dataset = ConcatDataset([dataset1, dataset2]) #unione dei due dataset in maniera non randomica.Quando li proponiamo alla rete randomizziamo l'indice senza ripetizioni
-    '''
-    print(len(dataset1))
-    print("Lunghezza 1 /n")
-    print(len(dataset2))
-    print("Lunghezza 2 /n")
-     print("%  per dataset2") 
-    print( len(dataset2)/len(dataset))
-
-    
-    for i in range (20):
-       image,label=dataset1[450+25*i]
-       image=preprocess(image)
-       cv2.imshow('Immagine ',image )  # 'Immagine 250' è il nome della finestra, e 'image' è l'immagine da mostrare
-       cv2.waitKey(0)  # Attende fino a quando un tasto non viene premuto
-       cv2.destroyAllWindows()
-    '''
+   
     total_size = len(dataset)
     train_size = int(0.8 * total_size)
     test_size = total_size - train_size
@@ -162,9 +143,11 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
 
 
+
+	
 # Creazione dell'istanza del dataloader
 
-    num_epochs = 0 # EPOCHE per train    OCCHIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+    num_epochs = 0 # EPOCHE per train    
 
     preprocessed_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
@@ -206,11 +189,11 @@ if __name__ == "__main__":
             batch_labels = batch_labels.long()
             loss = criterion(outputs, batch_labels)
 
-        # Backward pass e ottimizzazione
+        # Backward pass
             loss.backward()
             optimizer.step()
 
-        # Stampa le statistiche di allenamento
+        # Training stats
             running_loss += loss.item()
             if i % 1== 0: # Stampa ogni i batch
                 print('[Epoch %d, Batch %d] loss: %.2f' %
