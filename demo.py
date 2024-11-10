@@ -72,20 +72,20 @@ def controlla_giardino(mappa, image_directory):
     if isinstance(sample, np.ndarray) and mappa is not None:
         sample = Image.fromarray(sample)
 
-    # Definisci le trasformazioni richieste dal modello ResNet
+    # trasformazioni richieste da ResNet
     transform = transforms.Compose([
         transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
         transforms.ToTensor(),  # Converti in tensore PyTorch
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione ImageNet
     ])
 
-    # Applica le trasformazioni all'immagine campione
+  
     sample_transformed = transform(sample)
 
     sample_transformed = sample_transformed.unsqueeze(0)
     print(f"Dimensione del tensore sample: {sample_transformed.size()}")
 
-    # Estrai le caratteristiche dell'immagine campione usando ResNet
+    # Estrai le features dell'immagine campione usando ResNet
     sample_features = ret.extract_features(sample_transformed, Resnet)
 
     # Ottieni la lista di tutte le immagini nella directory specificata
@@ -131,10 +131,10 @@ memory_path = c.HOME_PATH
 image_directory = os.path.join(memory_path, 'immagini_mappa')
 json_file = os.path.join(memory_path, 'image_paths.json')
 json_tags_file = os.path.join(memory_path, 'tags_file.json')
-json_occlusion_file = os.path.join(memory_path, 'occlusion_file.json')  # FILE PER SALVARE LE OCCLUSIONI (DEPTH) todo
+json_occlusion_file = os.path.join(memory_path, 'occlusion_file.json')  # FILE PER SALVARE LE OCCLUSIONI (DEPTH)
 
 
-if (controlla_giardino(mappa, image_directory)):  # Verifica che 'json_file' esista ed è un file
+if (controlla_giardino(mappa, image_directory)):  # Verifica che 'json_file' esista 
     # Carica la mappa dal file
     fp.load_image_paths_from_json(mappa, json_file)
     fp.load_tags_from_json(mappa, json_tags_file)
@@ -142,7 +142,7 @@ if (controlla_giardino(mappa, image_directory)):  # Verifica che 'json_file' esi
     print('percorso caricato')
 
 
-else:  # questo branch non gestisce i tag, si implementa con un json come per le img ma è più facile
+else:  
 
     mappa = mp.Map(c.MAP_WIDTH, c.MAP_HEIGHT, c.CELL_SIZE)
     fp.riempi_mappa(mappa)  # scrive i percorsi nella mappa e salva le foto nella cartella
