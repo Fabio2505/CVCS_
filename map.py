@@ -117,8 +117,7 @@ class Map:
         # Copia i valori dei tag solo nelle celle occupate
         for i in range(self.height):
             for j in range(self.width):
-                if self.tags[i][
-                    j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
+                if self.tags[i][j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
                     tag_grid[i][j] = int(self.tags[i][j])
 
         # Definisci i colori per 0 e 1
@@ -126,18 +125,14 @@ class Map:
         bounds = [0, 0.5, 1]
         norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-        # Crea la figura
+     
         plt.figure(figsize=(self.width / 2, self.height / 2))
         plt.imshow(tag_grid, cmap=cmap, norm=norm)
 
         # Aggiungi una griglia per evidenziare le celle
         plt.grid(which='both', color='black', linestyle='-', linewidth=2)
-
-        # Imposta le ticks per il numero corretto di righe e colonne
         plt.xticks(np.arange(-.5, self.width, 1), [])
         plt.yticks(np.arange(-.5, self.height, 1), [])
-
-        # Mostra la mappa
         plt.show()
 
     def print_occlusion_grid(self):
@@ -147,26 +142,21 @@ class Map:
         # Copia i valori dei tag solo nelle celle occupate
         for i in range(self.height):
             for j in range(self.width):
-                if self.occlusion_grid[i][
-                    j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
+                if self.occlusion_grid[i][j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
                     occlusion_grid[i][j] = int(self.occlusion_grid[i][j])
 
-        # Definisci i colori per 0 e 1
+        
         cmap = mcolors.ListedColormap(['white', 'yellow'])  # bianco per 0, giallo per 1
         bounds = [0, 0.5, 1]
         norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-        # Crea la figura
+        
         plt.figure(figsize=(self.width / 2, self.height / 2))
         plt.imshow(occlusion_grid, cmap=cmap, norm=norm)
-
         # Aggiungi una griglia per evidenziare le celle
         plt.grid(which='both', color='black', linestyle='-', linewidth=2)
 
-        # Imposta le ticks per il numero corretto di righe e colonne
         plt.xticks(np.arange(-.5, self.width, 1), [])
         plt.yticks(np.arange(-.5, self.height, 1), [])
-
-        # Mostra la mappa
         plt.show()
 
