@@ -26,7 +26,7 @@ def new_image(image_files):
     return example_image
 
 
-def riempi_mappa(mappa):  # -----> |||||Questa funzione qua è la base per la navigazione simulata|||||
+def riempi_mappa(mappa):  # base per eventuale navigazione
     for y in range(c.MAP_HEIGHT):
         # condizione ingrandimento
         for x in range(c.MAP_WIDTH):
