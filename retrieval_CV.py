@@ -1,162 +1,172 @@
-
 import numpy as np
-import random
-import time
-import constants as c
 import cv2
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import os
 from PIL import Image
-import torch
-from torchvision import models, transforms
-from torchvision.models import resnet50, ResNet50_Weights
-from torch.nn import functional as F
+import json
+import config_constants as c
+
+plt.switch_backend('MacOSX')
 
 
-def new_image(image_files):
-    
-    if not image_files:
-        print("Nessun file immagine trovato nel percorso specificato.")
-        return None
+class Map:
+    def __init__(self, width, height, cell_size):
+        self.width = width  # colonne
+        self.height = height  # righe
+        self.cell_size = cell_size
+        self.grid = np.empty((height, width), dtype=object)  # Matrice per memorizzare le immagini
+        self.tags = np.empty((height, width), dtype=object)  # Matrice per memorizzare info aggiuntive
+        self.occupancy_grid = np.zeros(
+            (height, width))  # Matrice per test movimento robot e allargamento mappa automatico
+        self.occlusion_grid = np.zeros((height, width))  # Matrice per rilevare la presenza di un ostacolo
 
-    random_image = random.choice(image_files)
-    full_image_path = os.path.join(c.FOLDER_PATH, random_image)
-    example_image = cv2.imread(full_image_path)
-    return example_image
+    # Aggiorna la cella della mappa con l'immagine acquisita dal robot
 
+    def update_map(self, x, y, image, tag, occlusion):
+        print(f"Update map at ({x}, {y})")
 
+        self.grid[x, y] = image
+        self.occupancy_grid[x, y] = 1  # Assicurati che sia 1, non un intero non subscriptable
+        self.tags[x, y] = tag
+        self.occlusion_grid[x, y] = occlusion
 
-# Funzione per prendere un'immagine casualmente da una cartella
-def random_img():
-    image_files = [file for file in os.listdir(c.FOLDER_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
-    if not image_files:
-        print("Nessun file immagine trovato nel percorso specificato.")
-        return None
+    def ingrandisci_mappa(self):
+        righe, colonne = len(self.grid), len(self.grid[0])
+        self.height = 4 + righe  # 120+righe
+        self.width = 4 + colonne  # 120+colonne
 
-    random_image = random.choice(image_files)
-    full_image_path = os.path.join(c.FOLDER_PATH, random_image)
-    example_image = cv2.imread(full_image_path)
+        nuova_matrice = np.empty((self.height, self.width), dtype=object)
+        nuova_occupancy_grid = np.zeros((self.height, self.width))
+        for i in range(righe):
+            for j in range(colonne):
+                nuova_matrice[i + 2][j + 2] = self.grid[i][j]  # i+60,j+60
+                nuova_occupancy_grid[i + 2][j + 2] = self.occupancy_grid[i][j]
 
-    if example_image is None:
-        print(f"Errore nel caricamento dell'immagine: {full_image_path}. Verifica il percorso e l'integrità del file.")
-        return None
+        self.grid = nuova_matrice
+        self.occupancy_grid = nuova_occupancy_grid
 
-    # Converti da BGR (OpenCV) a RGB (PIL)
-    example_image = cv2.cvtColor(example_image, cv2.COLOR_BGR2RGB)
-# Converti il numpy.ndarray in un oggetto PIL.Image
-    example_image = Image.fromarray(example_image)
-    return full_image_path
-#return example_image
+    def estrai_foto(self):
+        immagini = []
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.grid[i, j] is not None:  # Verifica se c'è un'immagine nella cella
+                    immagini.append(self.grid[i, j])  # Aggiungi l'immagine alla lista
+        return immagini
 
-#subset del dataset per velocizzare l'esecuzione
-def get_random_subset(folder_path, num_samples):
-    all_files = [file for file in os.listdir(folder_path) if file.endswith(('.jpg', '.jpeg', '.png'))]
-    if num_samples > len(all_files):
-        return all_files  # ritorna tutti i file se il num_samples è più grande del numero di file disponibili
-    else:
-        return random.sample(all_files, num_samples)
+    """
+    # Mostra la singola immagine per cella (non utilizzato)
+    def display_images(self):
+        for x in range(self.width):
+            for y in range(self.height):
+                image = self.grid[x][y]
+                tag_info = self.tags[x][y]
+                print(tag_info)
+                if image is not None:
+                    cv2.imshow(f'Cella ({x}, {y})', image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    """
 
+    # visualizza occupancy_grid
+    def display_grid(self):
+        plt.imshow(self.occupancy_grid, cmap='gray', origin='upper', extent=(0, self.width, self.height, 0))
+        plt.show()
 
-def compare_images(features1, features2):
-    
-    if features1.shape != features2.shape:
-        raise ValueError("Input tensors must have the same shape")
-    
-    # Compute cosine similarity along the appropriate dimension
-    similarity = F.cosine_similarity(features1, features2, dim=1)  # Adjust 'dim' as per your tensor shape
-    return similarity
+    def display_map(self):
+        # Percorso del file JSON e della directory delle immagini
+        memory_path = c.HOME_PATH
+        json_file = os.path.join(memory_path, 'image_paths.json')
 
-# Definizione delle trasformazioni per il modello
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
-    transforms.ToTensor(),  # Converti in tensore PyTorch
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
-])
+        # Carica i percorsi delle immagini dal file JSON una sola volta
+        with open(json_file, 'r') as f:
+            image_paths = json.load(f)
 
+        # Crea un'immagine vuota che rappresenta l'intera mappa
+        map_image = np.zeros((self.height * self.cell_size[0], self.width * self.cell_size[1], 3), dtype=np.uint8)
 
-def to_tensor(img_path):
-    img = Image.open(img_path).convert('RGB')
-    img_t = transform(img)
-    batch_t = torch.unsqueeze(img_t, 0)
-    return batch_t
+        # Itera su ogni cella della griglia per caricare le immagini
+        for i in range(self.height):
+            for j in range(self.width):
+                # Recupera il percorso dell'immagine dal JSON
+                key = f"{i},{j}"
+                file_path = image_paths.get(key)  # Ottieni il percorso dell'immagine dal JSON
 
-def extract_features(image_tensor,model):
-    
-    with torch.no_grad():
-    # Ottenere le output fino all'ultimo strato convoluzionale
-        features = model(image_tensor)
-    # Applicare pooling globale per ridurre le dimensioni spaziali
-        features = features.view(features.size(0), -1)
-    return features
+                if file_path and os.path.exists(file_path):
+                    image = cv2.imread(file_path, flags=cv2.IMREAD_COLOR)
 
+                    if image is not None:
+                        # Inserisci l'immagine caricata nella griglia di mappa
+                        map_image[i * self.cell_size[0]: (i + 1) * self.cell_size[0],
+                        j * self.cell_size[1]: (j + 1) * self.cell_size[1]] = image
+                    else:
+                        print(f"Errore nel caricamento dell'immagine da {file_path}")
+                else:
+                    print(f"Percorso dell'immagine non valido o immagine mancante per ({i}, {j})")
 
+        # Visualizza l'immagine della mappa
+        cv2.namedWindow("Mappa", cv2.WINDOW_NORMAL)
+        cv2.imshow("Mappa", map_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
-#_____________________________________________________________________________________________________
+    def print_tag_grid(self):
+        # Crea una matrice vuota per i tag binari
+        tag_grid = np.zeros((self.height, self.width))
 
-# Carica il modello ResNet preaddestrato
-def istanzia_modello():
-    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
-    model.eval()
-    model = torch.nn.Sequential(*list(model.children())[:-2]) # Rimuove l'ultimo fc layer e l'ultimo pooling layer
-    return model
+        # Copia i valori dei tag solo nelle celle occupate
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.tags[i][
+                    j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
+                    tag_grid[i][j] = int(self.tags[i][j])
 
-'''
-# Ottieni un'immagine casuale, visualizzala e trasformala
-img_path = random_img()
-if img_path is not None:
-    
-    img_tensor = to_tensor(img_path)
-    print("ok")
-else:
-    print("Nessuna immagine da visualizzare.")
+        # Definisci i colori per 0 e 1
+        cmap = mcolors.ListedColormap(['white', 'green'])  # bianco per 0, verde per 1
+        bounds = [0, 0.5, 1]
+        norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-#estrazione delle feature
-features1=extract_features(img_tensor)
+        # Crea la figura
+        plt.figure(figsize=(self.width / 2, self.height / 2))
+        plt.imshow(tag_grid, cmap=cmap, norm=norm)
 
-#calcolo immagine più vicina
-min_distance = float('inf')
-min_file_path = None
-subset_files = get_random_subset(c.FOLDER_PATH, 100)
-# Itera su tutte le immagini nel dataset
-for file in subset_files:
-    if file.endswith(('.jpg', '.jpeg', '.png')):
-        file_path = os.path.join(c.FOLDER_PATH, file)  
-        image_to_compare = to_tensor(file_path)
-        features2 = extract_features(image_to_compare)
+        # Aggiungi una griglia per evidenziare le celle
+        plt.grid(which='both', color='black', linestyle='-', linewidth=2)
 
-        # Calcola la distanza tra le feature dell'immagine di riferimento e quelle correnti
-        distance = compare_images(features1, features2)
+        # Imposta le ticks per il numero corretto di righe e colonne
+        plt.xticks(np.arange(-.5, self.width, 1), [])
+        plt.yticks(np.arange(-.5, self.height, 1), [])
 
-        # Controlla se la distanza trovata è la minima e aggiorna se necessario
-        if distance < min_distance:
-            min_distance = distance
-            min_file_path = file_path
+        # Mostra la mappa
+        plt.show()
 
-# Stampa i risultati
-if min_file_path:
-    print(f'Image with minimum distance: {min_file_path}, Distance: {min_distance}')
+    def print_occlusion_grid(self):
+        # Crea una matrice vuota per i tag binari
+        occlusion_grid = np.zeros((self.height, self.width))
 
-img = cv2.imread(img_path)
+        # Copia i valori dei tag solo nelle celle occupate
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.occlusion_grid[i][
+                    j] is not None:  # qui ho tolto la condizione occupancy_grid[i][j]==1 che dava problemi in stampa
+                    occlusion_grid[i][j] = int(self.occlusion_grid[i][j])
 
-# Controlla se l'immagine è stata caricata correttamente
-if img is not None:
-    # Mostra l'immagine
-    cv2.imshow('Immagine', img)
-    # Attendi che l'utente prema un tasto per chiudere la finestra
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-else:
-    print("Errore: l'immagine non è stata trovata o non è possibile leggerla.")
+        # Definisci i colori per 0 e 1
+        cmap = mcolors.ListedColormap(['white', 'yellow'])  # bianco per 0, giallo per 1
+        bounds = [0, 0.5, 1]
+        norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-# Carica l'immagine utilizzando OpenCV
-img = cv2.imread(min_file_path)
+        # Crea la figura
+        plt.figure(figsize=(self.width / 2, self.height / 2))
+        plt.imshow(occlusion_grid, cmap=cmap, norm=norm)
 
-# Controlla se l'immagine è stata caricata correttamente
-if img is not None:
-    # Mostra l'immagine
-    cv2.imshow('Immagine', img)
-    # Attendi che l'utente prema un tasto per chiudere la finestra
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-else:
-    print("Errore: l'immagine non è stata trovata o non è possibile leggerla.")
-'''
+        # Aggiungi una griglia per evidenziare le celle
+        plt.grid(which='both', color='black', linestyle='-', linewidth=2)
+
+        # Imposta le ticks per il numero corretto di righe e colonne
+        plt.xticks(np.arange(-.5, self.width, 1), [])
+        plt.yticks(np.arange(-.5, self.height, 1), [])
+
+        # Mostra la mappa
+        plt.show()
+

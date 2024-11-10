@@ -34,15 +34,16 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from object_detection import create_object_mask, find_object_areas, calculate_average_distance
 
+path = 'img/ajesdgalbf.jpg'  # sostituire con percorso immagine
 
 # 1. preprocessing immagine
-img_model_input = depth_img_preprocessing('img/agndwlwiqm.jpg', (3, 128, 128))  # sostituire con immagine random o percorso immagine
-
+img_model_input = depth_img_preprocessing(path, (3, 128, 128))  # sostituire con immagine random o percorso immagine
+image_segm_input = path
 
 # 2. inizializzazione modello e caricamento dei pesi
 model = ANSRGB()
-
 state_dict = torch.load('ckpt.12.pth', map_location=torch.device('cpu'))
 # print(state_dict.keys())
 model.load_state_dict(state_dict, strict=False)
@@ -55,8 +56,24 @@ with torch.no_grad():
 model_result = output["occ_estimate"]
 print(model_result.shape)  # (1, 2, 128, 128)
 
+depth_image = model_result[:, 0, :, :].squeeze().numpy()
+
+binary_mask, resized_image = create_object_mask(image_segm_input)
+
+cv2.imshow('Tree Trunk Mask', binary_mask)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+areas = find_object_areas(binary_mask)
+
+if areas:
+    average_distance = calculate_average_distance(depth_image, areas)
+    print(f"Distanza media: {average_distance:.3f}")
+else:
+    print("non ci sono ostacoli")
+
 """
-# 3. visualizzazione risultati con opencv
+# 3. visualizzazione risultati profondità con opencv
 depth_map_channel_0 = model_result[0, 0, :, :].detach().cpu().numpy()
 depth_map_channel_1 = model_result[0, 1, :, :].detach().cpu().numpy()
 
@@ -70,10 +87,7 @@ cv2.imshow('Canale 1', depth_map_channel_1_normalized)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-"""
-
-
-# 3bis visualizzazione dei risultati con matplotlib
+# 3bis visualizzazione dei risultati profondità con matplotlib
 
 output_channel_0 = model_result[0, 0, :, :].detach().cpu().numpy()
 output_channel_1 = model_result[0, 1, :, :].detach().cpu().numpy()
@@ -96,3 +110,14 @@ depth_stats_0 = compute_depth_values(model_result, 0)
 print(f"Mean Depth: {depth_stats_0['mean_depth']:.3f}")
 print(f"Max Depth: {depth_stats_0['max_depth']:.3f}")
 print(f"Min Depth: {depth_stats_0['min_depth']:.3f}")
+
+
+depth_map_channel_1 = model_result[:, 1, :, :]
+print("Valore minimo:", torch.min(depth_map_channel_1))
+print("Valore massimo:", torch.max(depth_map_channel_1))
+"""
+
+
+
+
+
