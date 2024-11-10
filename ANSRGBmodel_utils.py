@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torchvision.models as tmodels
 from PIL import Image
 import torchvision.transforms as transforms
-
+import numpy as np
 
 def compute_depth_values(img_depth, channel):
     """
