@@ -36,7 +36,7 @@ def random_img():
     example_image = cv2.imread(full_image_path)
 
     if example_image is None:
-        print(f"Errore nel caricamento dell'immagine: {full_image_path}. Verifica il percorso e l'integrità del file.")
+        print(f"Errore nel caricamento dell'immagine: {full_image_path}. Verifica il percorso.")
         return None
 
     # Converti da BGR (OpenCV) a RGB (PIL)
@@ -60,15 +60,15 @@ def compare_images(features1, features2):
     if features1.shape != features2.shape:
         raise ValueError("Input tensors must have the same shape")
     
-    # Compute cosine similarity along the appropriate dimension
-    similarity = F.cosine_similarity(features1, features2, dim=1)  # Adjust 'dim' as per your tensor shape
+    
+    similarity = F.cosine_similarity(features1, features2, dim=1)  #flat
     return similarity
 
 # Definizione delle trasformazioni per il modello
 transform = transforms.Compose([
     transforms.Resize((224, 224)),  # Dimensione richiesta da ResNet
-    transforms.ToTensor(),  # Converti in tensore PyTorch
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalizzazione consigliata ImageNet
+    transforms.ToTensor(),  #Converti in tensore PyTorch
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  #Normalizzazione consigliata ImageNet
 ])
 
 
@@ -81,7 +81,7 @@ def to_tensor(img_path):
 def extract_features(image_tensor,model):
     
     with torch.no_grad():
-    # Ottenere le output fino all'ultimo strato convoluzionale
+    # Ottenere le output fino all'ultimo strato convolutivo
         features = model(image_tensor)
     # Applicare pooling globale per ridurre le dimensioni spaziali
         features = features.view(features.size(0), -1)
@@ -125,12 +125,11 @@ for file in subset_files:
         # Calcola la distanza tra le feature dell'immagine di riferimento e quelle correnti
         distance = compare_images(features1, features2)
 
-        # Controlla se la distanza trovata è la minima e aggiorna se necessario
+        # aggiorna se necessario
         if distance < min_distance:
             min_distance = distance
             min_file_path = file_path
 
-# Stampa i risultati
 if min_file_path:
     print(f'Image with minimum distance: {min_file_path}, Distance: {min_distance}')
 
@@ -138,22 +137,16 @@ img = cv2.imread(img_path)
 
 # Controlla se l'immagine è stata caricata correttamente
 if img is not None:
-    # Mostra l'immagine
     cv2.imshow('Immagine', img)
-    # Attendi che l'utente prema un tasto per chiudere la finestra
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 else:
     print("Errore: l'immagine non è stata trovata o non è possibile leggerla.")
 
-# Carica l'immagine utilizzando OpenCV
 img = cv2.imread(min_file_path)
 
-# Controlla se l'immagine è stata caricata correttamente
 if img is not None:
-    # Mostra l'immagine
     cv2.imshow('Immagine', img)
-    # Attendi che l'utente prema un tasto per chiudere la finestra
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 else:
