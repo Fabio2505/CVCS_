@@ -106,7 +106,7 @@ def controlla_giardino(mappa, image_directory):
         # Confronta le caratteristiche dell'immagine campione con quelle dell'immagine corrente
         similarity = ret.compare_images(sample_features, immagine_features)
 
-        if similarity > 0.8:  # Soglia di somiglianza del 80%
+        if similarity > 0.6:
             giardino_noto = 1
             break
 
