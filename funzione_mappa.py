@@ -49,7 +49,7 @@ def insert_tag(image):
     image = torch.tensor(image, dtype=torch.float32)
     image = image.unsqueeze(0)  # aggiungi channel_in
     model = Net.CNN()
-    model.load_state_dict(torch.load("cnn.pth"))
+    model.load_state_dict(torch.load("cnn (1).pth"))
     output = model(image)
     _, stato_erba = torch.max(output, dim=1)
     stato_erba = stato_erba.item()

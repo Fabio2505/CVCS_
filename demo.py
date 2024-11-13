@@ -119,7 +119,7 @@ def controlla_giardino(mappa, image_directory):
 image_files = [file for file in os.listdir(c.IMAGES_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
 mappa = mp.Map(c.MAP_WIDTH, c.MAP_HEIGHT, c.CELL_SIZE)
 model = Net.CNN()
-model.load_state_dict(torch.load("cnn.pth"))
+model.load_state_dict(torch.load("cnn (1).pth"))
 
 # inizializzazione modello ANSRGB e caricamento dei pesi
 depth_model = ANSRGB()
