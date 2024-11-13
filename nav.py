@@ -33,15 +33,16 @@ def create_nav_grid(occlusion_matrix, grass_matrix):
         nav_matrix.append(row)
     return nav_matrix
 
-
 def nav_path(base_matrix, start_pos):
-    # Definizione delle direzioni (dx, dy) per il chain code con 4 direzioni:
-    # 0 = destra, 1 = giù, 2 = sinistra, 3 = su
+    """
+    Naviga la matrice e restituisce il percorso principale
+    e le coordinate di svuotamento finale dello stack per tornare alla posizione di partenza.
+    """
     direzioni = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    chain_code = []
     percorso = []
-    visitati = set()  # todo Set per tracciare le celle già visitate oppure imposto le celle visitate a 2?
-    stack = []  # Stack per il backtracking
+    visitati = set()
+    stack = []
+    percorso_backtracking = []
 
     x, y = start_pos
     percorso.append((x, y))
@@ -49,17 +50,23 @@ def nav_path(base_matrix, start_pos):
     stack.append((x, y))
 
     def cella_valida(nx, ny):
-        # Verifica che la cella sia dentro i limiti della matrice e che sia erba non tagliata (0)
+        #Verifica che la cella sia dentro i limiti e non sia un ostacolo o già visitata
         return (0 <= nx < len(base_matrix) and 0 <= ny < len(base_matrix[0]) and base_matrix[nx][ny] == 0 and (nx, ny) not in visitati)
 
-    # Ciclo di esplorazione
+    def ci_sono_celle_da_visitare():
+        #Verifica se ci sono ancora celle visitabili nella matrice
+        for i in range(len(base_matrix)):
+            for j in range(len(base_matrix[0])):
+                if base_matrix[i][j] == 0 and (i, j) not in visitati:
+                    return True
+        return False
+
     while stack:
         trovato_prossima = False
-        for direzione, (dx, dy) in enumerate(direzioni):
+        for dx, dy in direzioni:
             nx, ny = x + dx, y + dy
             if cella_valida(nx, ny):
                 x, y = nx, ny
-                chain_code.append(direzione)
                 percorso.append((x, y))
                 visitati.add((x, y))
                 stack.append((x, y))
@@ -67,46 +74,50 @@ def nav_path(base_matrix, start_pos):
                 break
 
         if not trovato_prossima:
-            # Se non ci sono celle libere adiacenti e lo stack è vuoto, termina
             if len(stack) > 1:
-                stack.pop()  # Rimuovi la posizione corrente dallo stack
-                x, y = stack[-1]  # Torna all'ultima posizione nello stack
-                chain_code.append(-1)  # -1 come segnalazione del backtracking
-                percorso.append((x, y))
+                stack.pop()
+                x, y = stack[-1]
+
+                # Salva in percorso_backtracking solo se non ci sono più celle da visitare
+                if not ci_sono_celle_da_visitare():
+                    percorso_backtracking.append((x, y))
+                else:
+                    percorso.append((x, y))
             else:
-                # Se lo stack ha solo un elemento (la posizione di partenza), termina
                 break
 
-    return chain_code, percorso
+    return percorso, percorso_backtracking
 
 
-# Esempio di matrici
+# Eseguiamo il codice con esempio di matrice combinata, percorso e visualizzazione
 occlusion_grid = [
-    [0, 1, 1],
-    [0, 1, 0],
-    [0, 0, 0]
-
+    [0, 1, 1, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0]
 ]
 
 tag_grid = [
-    [0, 0, 0],
-    [None, 0, 0],
-    [0, 0, None]
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
 ]
 
+# Crea la matrice combinata
 matrice_combinata = create_nav_grid(occlusion_grid, tag_grid)
 
 for row in matrice_combinata:
     print(row)
 
+
+# Eseguiamo il pathfinding
 posizione_iniziale = (0, 0)
-
-path, directions = nav_path(matrice_combinata, posizione_iniziale)
-
-print("Percorso:", path)
-print("Direzioni:", directions)
-
-
+path, final_backtracking_path = nav_path(matrice_combinata, posizione_iniziale)
+print(path)
+print(final_backtracking_path)
 
 
 
