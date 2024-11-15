@@ -6,15 +6,11 @@ from PIL import Image
 import torchvision.transforms as transforms
 import numpy as np
 
-def compute_depth_values(img_depth, channel):
-    """
-    Calcola la distanza media, il valore massimo e il minimo basati sulla profondità predetta,
-    ignorando i valori di profondità pari a 0.
-    """
+def compute_depth_values(img_depth, channel):  # print some staistics about the depth image
     depth_map = img_depth[:, channel, :, :]
     valid_depths = depth_map[depth_map != 0]
 
-    if valid_depths.numel() == 0:  # Controlla se ci sono valori validi
+    if valid_depths.numel() == 0:
         return {
             "mean_depth": torch.tensor(0.0),
             "max_depth": torch.tensor(0.0),
@@ -25,7 +21,6 @@ def compute_depth_values(img_depth, channel):
     max_depth = torch.max(valid_depths)
     min_depth = torch.min(valid_depths)
 
-    # Restituisce un dizionario con i tre valori
     return {
         "mean_depth": mean_depth,
         "max_depth": max_depth,
@@ -34,26 +29,21 @@ def compute_depth_values(img_depth, channel):
 
 
 def depth_img_preprocessing(img, dim):
-    """
-    pre-processing dell'immagine: prende la metà superiore dell'immagine e la ridimensiona per input modello ANSRGB
-    """
     if isinstance(img, np.ndarray):
        img = Image.fromarray(img)
 
     width, height = img.size
-    box = (0, 0, width, height // 2)  # Ritaglia la metà superiore
+    box = (0, 0, width, height // 2) 
     img_crop = img.crop(box)
     # img_crop.show()
     img_out = img_crop.resize((dim[1], dim[2]))
     # img_out.show()
 
-    #  trasformazioni per convertire l'immagine in un tensor e normalizzarla
     preprocess_to_tensor = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Valori di normalizzazione
     ])
 
-    # Applica le trasformazioni all'immagine ridimensionata
     image_tensor = preprocess_to_tensor(img_out).unsqueeze(0)  # Aggiungo la dimensione batch ->(1, 3, 128, 128)
 
     return image_tensor
