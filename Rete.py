@@ -106,26 +106,43 @@ class MyDataset(Dataset):
         label = self.class_label
         return image, label
 
+
 class CNN(nn.Module): 
     def __init__(self):
         super(CNN, self).__init__()
 
-        self.conv1 = nn.Conv2d(1, 3, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(3, 3, kernel_size=3, stride=1, padding=1)
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
-        self.dropout = nn.Dropout(0.3)  
-        self.fc1 = nn.Linear(3 * 112 * 224, 16)
-        self.fc2 = nn.Linear(16, 2)  
+        
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=3, stride=2, padding=1)  # Aumentato da 3 a 8 filtri
+        self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2, padding=1)  
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)  
+        
+        self.conv3 = nn.Conv2d(8, 8, kernel_size=3, stride=2, padding=1)  
+        self.conv4 = nn.Conv2d(8, 8, kernel_size=3, stride=2, padding=1)  
+        self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)  
 
+       
+        self.dropout = nn.Dropout(0.1)
+        
+        
+        self.fc1 = nn.Linear(8 * 6 * 3, 8)  
+        self.fc2 = nn.Linear(8, 2)  
+	    
     def forward(self, x):
+        
         x = nn.functional.relu(self.conv1(x))
-        x = nn.functional.relu(self.conv2(x)) 
-        x = nn.functional.max_pool2d(x, 2)
-        x = x.view(-1, 3 * 224 * 112)
-        x = nn.functional.relu(self.fc1(x))
+        x = nn.functional.relu(self.conv2(x))
+        x = self.pool1(x)
+        
+        x = nn.functional.relu(self.conv3(x))
+        x = nn.functional.relu(self.conv4(x))
+        x = self.pool2(x)
+
+        x = x.view(x.size(0), -1)  
         x = self.dropout(x)
-        x = self.fc2(x)  # nessuna funzione di attivazione dato che si usa la cross entropy
+        x = nn.functional.relu(self.fc1(x))
+        x = self.fc2(x)
         return x
+
 
 if __name__ == "__main__":
     dataset2 = MyDataset('C:\\Users\\racch\\OneDrive\\Desktop\\erbatagliata\\Erbalunga',0) #erba NON tagliata classe 0
