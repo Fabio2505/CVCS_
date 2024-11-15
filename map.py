@@ -232,8 +232,6 @@ class Map:
         # Mostra la mappa
         plt.show()
 
-    import matplotlib.lines as mlines
-    import matplotlib.patches as mpatches
 
     def display_path(self, start_pos):
         fig, ax = plt.subplots()
