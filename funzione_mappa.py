@@ -75,7 +75,7 @@ def insert_occlusion(image):  # funzione per la depth estimation
         depth_image = depth_model_result[:, 0, :, :].squeeze().numpy()
         average_distance = calculate_average_distance(depth_image, areas)
         print(f"Distanza media- funzione mappa: {average_distance:.3f}")
-        if average_distance < 0.5:
+        if average_distance < 0.49:
             return 1
         else:
             return 0
