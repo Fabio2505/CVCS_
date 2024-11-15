@@ -52,7 +52,7 @@ def insert_occlusion(image):
         depth_image = depth_model_result[:, 0, :, :].squeeze().numpy()
         average_distance = calculate_average_distance(depth_image, areas)
         # print(f"Distanza media: {average_distance:.3f}")
-        if average_distance < 0.5:
+        if average_distance < 0.49:
             return 1
         else:
             return 0
@@ -154,5 +154,16 @@ else:
 mappa.display_map()  # stampa i percorsi nella cartella concatenati
 mappa.print_tag_grid()
 mappa.print_occlusion_grid()
+
+mappa.create_nav_grid()
+
+starting_positions = [(i, j) for i in range(len(mappa.nav_grid)) for j in range(len(mappa.nav_grid[i])) if mappa.nav_grid[i][j] == 0]
+if len(starting_positions) > 0:
+    start_pos = random.choice(starting_positions)
+    _ = mappa.nav_path(start_pos)
+    mappa.display_path(start_pos)
+else:
+    print("Nessuna possibile posizione di partenza trovata")  # tutte le celle della matrice sono occupate
+
 
 print(f"MAP_WIDTH: {c.MAP_WIDTH}, MAP_HEIGHT: {c.MAP_HEIGHT}")
