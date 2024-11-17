@@ -29,7 +29,7 @@ def show_image(image):
 def insert_tag(image):  # funzione che valuta se l'erba è tagliata o meno
     image = cv2.Canny(image, 10, 50)
     image = torch.tensor(image, dtype=torch.float32)
-    image = image.unsqueeze(0)  # aggiungi channel_in
+    image = image.unsqueeze(0).unsqueeze(1)  # aggiungi channel_in
     output = model(image)
     _, stato_erba = torch.max(output, dim=1)
     stato_erba = stato_erba.item()
@@ -119,7 +119,7 @@ def controlla_giardino(mappa, image_directory):
 image_files = [file for file in os.listdir(c.IMAGES_PATH) if file.endswith(('.jpg', '.jpeg', '.png'))]
 mappa = mp.Map(c.MAP_WIDTH, c.MAP_HEIGHT, c.CELL_SIZE)
 model = Net.CNN()
-model.load_state_dict(torch.load("cnn (1).pth"))
+model.load_state_dict(torch.load("cnn.pth"))
 
 # inizializzazione modello ANSRGB e caricamento dei pesi
 depth_model = ANSRGB()
