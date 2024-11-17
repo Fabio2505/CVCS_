@@ -10,7 +10,7 @@ def create_object_mask(image, target_size=(128, 128)):  # Create a binary mask t
 
     gray = cv2.cvtColor(resized_cropped_image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, binary = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)  # Usa la sogliatura per identificare i tronchi
+    _, binary = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
 
     return binary, resized_cropped_image
 
