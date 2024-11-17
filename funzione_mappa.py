@@ -47,9 +47,9 @@ def riempi_mappa(mappa):  # base per eventuale navigazione
 def insert_tag(image):
     image = cv2.Canny(image, 10, 50)
     image = torch.tensor(image, dtype=torch.float32)
-    image = image.unsqueeze(0)  # aggiungi channel_in
+    image = image.unsqueeze(0).unsqueeze(1)  # aggiungi channel_in
     model = Net.CNN()
-    model.load_state_dict(torch.load("cnn (1).pth"))
+    model.load_state_dict(torch.load("cnn.pth"))
     output = model(image)
     _, stato_erba = torch.max(output, dim=1)
     stato_erba = stato_erba.item()
