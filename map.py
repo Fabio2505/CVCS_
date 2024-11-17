@@ -3,11 +3,12 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
+from matplotlib.colors import ListedColormap
 import os
 import json
 import config_constants as c
 
-#plt.switch_backend('MacOSX')
+# plt.switch_backend('MacOSX')
 
 
 class Map:
@@ -87,32 +88,23 @@ class Map:
         self.path = []
         visitati = set()
         stack = []
-        final_backtracking = []
+        final_back = []
+        remaining_coordinates = [(i, j) for i in range(len(self.nav_grid)) for j in range(len(self.nav_grid[i])) if
+                                 self.nav_grid[i][j] == 0 and (i, j) != start_pos]
 
         x, y = start_pos
         self.path.append((x, y))
         visitati.add((x, y))
         stack.append((x, y))
 
-        def is_valid(nx, ny):
-            # Verifica che la cella sia dentro i limiti e non sia un ostacolo o già visitata
-            return (0 <= nx < len(self.nav_grid) and 0 <= ny < len(self.nav_grid[0]) and self.nav_grid[nx][
-                ny] == 0 and (
-                        nx, ny) not in visitati)
-
-        def unvisited_cells():
-            # Verifica se ci sono ancora celle visitabili nella matrice
-            for i in range(len(self.nav_grid)):
-                for j in range(len(self.nav_grid[0])):
-                    if self.nav_grid[i][j] == 0 and (i, j) not in visitati:
-                        return True
-            return False
-
         while stack:
             trovato_prossima = False
             for dx, dy in direzioni:
                 nx, ny = x + dx, y + dy
-                if is_valid(nx, ny):
+                if 0 <= nx < len(self.nav_grid) and 0 <= ny < len(self.nav_grid[0]) and (nx, ny) not in visitati and \
+                        self.nav_grid[nx][ny] != 1:
+                    if self.nav_grid[nx][ny] == 0:
+                        remaining_coordinates.remove((nx, ny))
                     x, y = nx, ny
                     self.path.append((x, y))
                     visitati.add((x, y))
@@ -124,16 +116,15 @@ class Map:
                 if len(stack) > 1:
                     stack.pop()
                     x, y = stack[-1]
-
-                    # Salva in percorso_backtracking solo se non ci sono più celle da visitare
-                    if not unvisited_cells():
-                        final_backtracking.append((x, y))
-                    else:
+                    if remaining_coordinates:
                         self.path.append((x, y))
+                    else:
+                        final_back.append((x, y))
                 else:
                     break
 
-        return final_backtracking
+        return final_back
+
 
     def display_map(self):
         # Percorso del file JSON e della directory delle immagini
@@ -232,57 +223,46 @@ class Map:
         # Mostra la mappa
         plt.show()
 
-
     def display_path(self, start_pos):
         fig, ax = plt.subplots()
         matrice = np.array(self.nav_grid)
 
-        # Creiamo una matrice per contare le visite nelle celle
         visite = np.zeros_like(matrice, dtype=int)
-
-        # Conta le visite alle celle
         for (x, y) in self.path:
             visite[x, y] += 1
 
-        # Mostra la matrice combinata con una mappa di colori
-        cax = ax.matshow(matrice, cmap='Greys')
+        cmap = ListedColormap(['white', 'black', 'grey'])
 
-        # Disegna il percorso con una linea rossa
-        x_coords, y_coords = zip(*self.path)
-        ax.plot(y_coords, x_coords, color='red', linewidth=2, marker='o', markersize=5)
+        cax = ax.matshow(matrice, cmap=cmap)
 
-        # Cambia il colore delle celle visitate più di una volta
+        # Cambia il colore delle celle visitate più di una volta, dopo aver disegnato la matrice
         for i in range(matrice.shape[0]):
             for j in range(matrice.shape[1]):
                 if visite[i, j] > 1:
-                    # Segnala le celle visitate più di una volta con un quadrato giallo
                     ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=True, color='yellow', alpha=0.5))
 
-        # Aggiungi le frecce per la direzione del percorso
+        x_coords, y_coords = zip(*self.path)
+        ax.plot(y_coords, x_coords, color='red', linewidth=2, marker='o', markersize=5)
+
         for i in range(len(self.path) - 1):
             x1, y1 = self.path[i]
             x2, y2 = self.path[i + 1]
 
-            # Disegna una freccia tra due celle successive
             ax.annotate('', xy=(y2, x2), xytext=(y1, x1),
                         arrowprops=dict(facecolor='blue', edgecolor='blue', arrowstyle='->', lw=2))
 
-        # Aggiungi annotazioni agli assi
         ax.set_xticks(np.arange(matrice.shape[1]))
         ax.set_yticks(np.arange(matrice.shape[0]))
         ax.set_xticklabels(np.arange(matrice.shape[1]))
         ax.set_yticklabels(np.arange(matrice.shape[0]))
 
-        # Disabilita i bordi dei tick per una migliore visibilità
         ax.tick_params(top=False, bottom=False, left=False, right=False)
 
-        # Aggiungi la posizione di partenza con una label
         start_x, start_y = start_pos
-        ax.plot(start_y, start_x, color='green', marker='o', markersize=8)  # Mostra la posizione di partenza
+        ax.plot(start_y, start_x, color='green', marker='o', markersize=8)
         ax.text(start_y, start_x, f'Start\n({start_x}, {start_y})', color='green', fontsize=10, ha='right',
                 va='bottom')  # Etichetta della posizione di partenza
 
-        # Crea una legenda per spiegare il significato dei colori
         legend_elements = [
             mpatches.Rectangle((0, 0), 1, 1, facecolor='yellow', edgecolor='yellow', alpha=0.5,
                                label='Visited multiple times'),
@@ -290,11 +270,10 @@ class Map:
             mpatches.Rectangle((0, 0), 1, 1, facecolor='gray', edgecolor='gray', label='Cut grass area')
         ]
 
-        # Aggiungi la legenda al grafico
         ax.legend(handles=legend_elements, loc='best', fontsize=10)
 
         plt.show()
 
 
 
-
+ 
