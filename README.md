@@ -7,6 +7,8 @@ Recognizing its potential for improvement, we developed a more advanced software
 introduce new features. A critical improvement is in the new capability of detecting both the state of the grass in front of the robot and the presence of
 a nearby occlusion, allowing better conduced navigation. Additionally, we introduced the capability to distinguish familiar environments from new ones, enabling the robot to adapt its navigation strategy by constructing a new representation of the surroundings, daily optimizing times and energy.
 
+The .pdf file "Final Report" shows the project more in detail
+
 ## Citazione
 
 A part of the code for this project was taken from [Occupancy Anticipation for Efficient Exploration and Navigation](https://github.com/facebookresearch/OccupancyAnticipation.git), which refers to the work of:
